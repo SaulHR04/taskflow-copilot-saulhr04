@@ -17,6 +17,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -154,6 +156,36 @@ class TaskServiceTest {
             assertThrows(TaskNotFoundException.class, () -> service.eliminar(999L));
             // never() + anyLong(): NO se borró nada. (Regla "todos matchers o ninguno": aquí anyLong()).
             verify(repository, never()).deleteById(anyLong());
+        }
+    }
+
+    @Nested
+    @DisplayName("vencidas")
+    class Vencidas {
+
+        @Test
+        void vencidas_devuelveSoloVencidasYOrdenadas() {
+            try {
+                Task vencidaAntigua = new Task(1L, "Antigua", "desc", TaskStatus.IN_PROGRESS,
+                        Priority.MED, PROYECTO, 1L, LocalDate.now().minusDays(5));
+                Task vencidaReciente = new Task(2L, "Reciente", "desc", TaskStatus.IN_PROGRESS,
+                        Priority.MED, PROYECTO, 1L, LocalDate.now().minusDays(2));
+                Task donePasada = new Task(3L, "DonePasada", "desc", TaskStatus.DONE,
+                        Priority.MED, PROYECTO, 1L, LocalDate.now().minusDays(4));
+                Task sinFecha = new Task(4L, "SinFecha", "desc", TaskStatus.IN_PROGRESS,
+                        Priority.MED, PROYECTO, 1L, null);
+
+                when(repository.findAll()).thenReturn(List.of(vencidaAntigua, vencidaReciente, donePasada, sinFecha));
+
+                List<Task> res = service.vencidas();
+
+                assertEquals(2, res.size());
+                // orden asc por dueDate: la más antigua (minusDays(5)) primero
+                assertEquals(vencidaAntigua.getId(), res.get(0).getId());
+                assertEquals(vencidaReciente.getId(), res.get(1).getId());
+            } catch (TaskValidationException e) {
+                throw new IllegalStateException("dato de prueba inválido", e);
+            }
         }
     }
 
