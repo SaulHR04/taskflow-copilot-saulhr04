@@ -200,6 +200,55 @@ class TaskServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("SinResponsable")
+    class SinResponsable {
+
+        @Test
+        void sinResponsable_devuelveSoloSinAsignarYOrdenadas() {
+            try {
+                Task sinResp10 = new Task(20L, "Sin10", "desc", TaskStatus.IN_PROGRESS,
+                        Priority.MED, PROYECTO, null, LocalDate.now().plusDays(10));
+                Task conResp = new Task(21L, "ConResp", "desc", TaskStatus.TODO,
+                        Priority.MED, PROYECTO, 2L, LocalDate.now().plusDays(5));
+                Task sinFecha = new Task(22L, "SinFecha", "desc", TaskStatus.TODO,
+                        Priority.MED, PROYECTO, null, null);
+                Task sinResp2 = new Task(23L, "Sin2", "desc", TaskStatus.TODO,
+                        Priority.MED, PROYECTO, null, LocalDate.now().plusDays(2));
+
+                when(repository.findAll()).thenReturn(List.of(
+                        sinResp10,
+                        conResp,
+                        sinFecha,
+                        sinResp2
+                ));
+
+                List<Task> res = service.sinResponsable();
+
+                assertEquals(3, res.size());
+                List<Long> ids = res.stream().map(Task::getId).toList();
+                assertEquals(List.of(23L, 20L, 22L), ids);
+            } catch (TaskValidationException e) {
+                throw new IllegalStateException("dato de prueba inválido", e);
+            }
+        }
+
+        @Test
+        void sinResponsable_conSoloAsignadas_devuelveListaVacia() {
+            try {
+                Task c1 = new Task(30L, "C1ok", "desc", TaskStatus.TODO, Priority.MED, PROYECTO, 5L, null);
+                Task c2 = new Task(31L, "C2ok", "desc", TaskStatus.TODO, Priority.MED, PROYECTO, 6L, LocalDate.now().plusDays(1));
+                when(repository.findAll()).thenReturn(List.of(c1, c2));
+
+                List<Task> res = service.sinResponsable();
+
+                assertEquals(0, res.size());
+            } catch (TaskValidationException e) {
+                throw new IllegalStateException("dato de prueba inválido", e);
+            }
+        }
+    }
+
     /** Fabrica una Task de rehidratación REAL (dato, no mock). assigneeId null = sin responsable. */
     private Task tarea(Long id, String title, Long assigneeId) {
         try {

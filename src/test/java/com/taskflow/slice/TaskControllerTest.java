@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -110,6 +111,23 @@ class TaskControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(2))
                     .andExpect(jsonPath("$[0].title").value("Antigua"));
+        } catch (TaskValidationException e) {
+            throw new IllegalStateException("dato de prueba inválido", e);
+        }
+    }
+
+    @Test
+    void getUnassigned_retorna200YIdsYAssigneeNull() throws Exception {
+        try {
+            Task t1 = new Task(4L, "Escribir tests MockMvc", "desc", TaskStatus.TODO, Priority.MED, 1L, null, LocalDate.now().plusDays(7));
+            Task t2 = new Task(6L, "Publicar en la tienda", "desc", TaskStatus.TODO, Priority.MED, 1L, null, LocalDate.now().plusDays(10));
+            when(taskService.sinResponsable()).thenReturn(List.of(t1, t2));
+
+            mockMvc.perform(get("/tasks/unassigned"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    .andExpect(jsonPath("$[0].id").value(4))
+                    .andExpect(jsonPath("$[0].assigneeId").value(nullValue()));
         } catch (TaskValidationException e) {
             throw new IllegalStateException("dato de prueba inválido", e);
         }
