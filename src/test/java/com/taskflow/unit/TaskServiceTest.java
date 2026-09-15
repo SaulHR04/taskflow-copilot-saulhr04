@@ -166,23 +166,34 @@ class TaskServiceTest {
         @Test
         void vencidas_devuelveSoloVencidasYOrdenadas() {
             try {
-                Task vencidaAntigua = new Task(1L, "Antigua", "desc", TaskStatus.IN_PROGRESS,
-                        Priority.MED, PROYECTO, 1L, LocalDate.now().minusDays(5));
-                Task vencidaReciente = new Task(2L, "Reciente", "desc", TaskStatus.IN_PROGRESS,
-                        Priority.MED, PROYECTO, 1L, LocalDate.now().minusDays(2));
-                Task donePasada = new Task(3L, "DonePasada", "desc", TaskStatus.DONE,
-                        Priority.MED, PROYECTO, 1L, LocalDate.now().minusDays(4));
-                Task sinFecha = new Task(4L, "SinFecha", "desc", TaskStatus.IN_PROGRESS,
+                // El repositorio devuelve las tareas en un orden arbitrario: una vencida hace 1 día,
+                // una con fecha en 3 días (futura), una DONE vencida hace 10 días, una sin dueDate,
+                // y una vencida hace 5 días.
+                Task vencidaHace1Dia = new Task(10L, "Vencida1", "desc", TaskStatus.IN_PROGRESS,
+                        Priority.MED, PROYECTO, 1L, LocalDate.now().minusDays(1));
+                Task futuraEn3Dias = new Task(11L, "Futura3", "desc", TaskStatus.IN_PROGRESS,
+                        Priority.MED, PROYECTO, 1L, LocalDate.now().plusDays(3));
+                Task doneVencidaHace10 = new Task(12L, "DoneOld10", "desc", TaskStatus.DONE,
+                        Priority.MED, PROYECTO, 1L, LocalDate.now().minusDays(10));
+                Task sinFecha = new Task(13L, "SinFecha", "desc", TaskStatus.IN_PROGRESS,
                         Priority.MED, PROYECTO, 1L, null);
+                Task vencidaHace5Dias = new Task(14L, "Vencida5", "desc", TaskStatus.IN_PROGRESS,
+                        Priority.MED, PROYECTO, 1L, LocalDate.now().minusDays(5));
 
-                when(repository.findAll()).thenReturn(List.of(vencidaAntigua, vencidaReciente, donePasada, sinFecha));
+                when(repository.findAll()).thenReturn(List.of(
+                        vencidaHace1Dia,
+                        futuraEn3Dias,
+                        doneVencidaHace10,
+                        sinFecha,
+                        vencidaHace5Dias
+                ));
 
                 List<Task> res = service.vencidas();
 
+                // Solo las dos vencidas (hace 1 día y hace 5 días), ordenadas por fecha asc (la más antigua primero).
                 assertEquals(2, res.size());
-                // orden asc por dueDate: la más antigua (minusDays(5)) primero
-                assertEquals(vencidaAntigua.getId(), res.get(0).getId());
-                assertEquals(vencidaReciente.getId(), res.get(1).getId());
+                assertEquals(vencidaHace5Dias.getId(), res.get(0).getId());
+                assertEquals(vencidaHace1Dia.getId(), res.get(1).getId());
             } catch (TaskValidationException e) {
                 throw new IllegalStateException("dato de prueba inválido", e);
             }
