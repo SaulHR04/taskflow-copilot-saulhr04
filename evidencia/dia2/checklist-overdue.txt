@@ -1,0 +1,48 @@
+ Capturas/1.1_ConfiguracionUTF-8.PNG                | Bin 0 -> 7498 bytes
+ Capturas/1.2_RevisionArchivos.PNG                  | Bin 0 -> 11303 bytes
+ Capturas/1.3_RevisionLogin.PNG                     | Bin 0 -> 11036 bytes
+ Capturas/1.4_HerenciaSubAgentesdeGpt.PNG           | Bin 0 -> 19151 bytes
+ Capturas/1.5_ComprobacionDeTest.PNG                | Bin 0 -> 43032 bytes
+ Capturas/1.6_BranchNueva.PNG                       | Bin 0 -> 8691 bytes
+ specs/overdue.md                                   |  42 +++++++++++++++++++++
+ .../com/taskflow/controller/TaskController.java    |   9 +++++
+ .../java/com/taskflow/service/TaskService.java     |   8 ++++
+ .../com/taskflow/slice/TaskControllerTest.java     |  17 +++++++++
+ .../java/com/taskflow/unit/TaskServiceTest.java    |  32 ++++++++++++++++
+ 11 files changed, 108 insertions(+)
+17	0	src/test/java/com/taskflow/slice/TaskControllerTest.java
+32	0	src/test/java/com/taskflow/unit/TaskServiceTest.java
+
++    /** GET /tasks/overdue ÔÇö lista tareas vencidas de todos los proyectos. */
++    /** Lista las tareas vencidas (dueDate en el pasado y no DONE), ordenadas por fecha asc (POR_FECHA). */
++                // orden asc por dueDate: la m├ís antigua (minusDays(5)) primero
+
+MUTANTE: quitado .sorted(TaskOrders.POR_FECHA) de vencidas()
+
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+RESTAURADO: TaskService.java quedó exactamente como estaba.
+
+
++    /** Lista las tareas vencidas (dueDate en el pasado y no DONE), ordenadas por fecha asc (POR_FECHA). */
++                .filter(Task::estaVencida)
++                .sorted(TaskOrders.POR_FECHA)
+
+
+[INFO] Tests run: 69, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
+17	0	src/test/java/com/taskflow/slice/TaskControllerTest.java
+43	0	src/test/java/com/taskflow/unit/TaskServiceTest.java
+
++    /** GET /tasks/overdue ÔÇö lista tareas vencidas de todos los proyectos. */
++    /** Lista las tareas vencidas (dueDate en el pasado y no DONE), ordenadas por fecha asc (POR_FECHA). */
++                // El repositorio devuelve las tareas en un orden arbitrario: una vencida hace 1 d├¡a,
++                // una con fecha en 3 d├¡as (futura), una DONE vencida hace 10 d├¡as, una sin dueDate,
++                // y una vencida hace 5 d├¡as.
++                // Solo las dos vencidas (hace 1 d├¡a y hace 5 d├¡as), ordenadas por fecha asc (la m├ís antigua primero).
+
+
+[INFO] Tests run: 69, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+
