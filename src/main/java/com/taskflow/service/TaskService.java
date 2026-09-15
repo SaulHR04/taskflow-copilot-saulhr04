@@ -122,4 +122,20 @@ public class TaskService {
                 .filter(t -> t.getPriority() == priority)
                 .toList();
     }
+
+    /** Lista las tareas vencidas (dueDate en el pasado y no DONE), ordenadas por fecha asc (POR_FECHA). */
+    public List<Task> vencidas() {
+        return repository.findAll().stream()
+                .filter(Task::estaVencida)
+                .sorted(TaskOrders.POR_FECHA)
+                .toList();
+    }
+
+    /** Lista las tareas sin responsable (assigneeId == null), ordenadas por fecha asc (POR_FECHA). */
+    public List<Task> sinResponsable() {
+        return repository.findAll().stream()
+                .filter(ReportService.SIN_ASIGNAR)
+                .sorted(TaskOrders.POR_FECHA)
+                .toList();
+    }
 }

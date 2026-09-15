@@ -21,10 +21,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 import static org.hamcrest.Matchers.matchesPattern;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -96,6 +98,39 @@ class TaskControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Diseñar esquema de BD"))
                 .andExpect(jsonPath("$.projectId").value(1));
+    }
+
+    @Test
+    void getOverdue_retorna200YListaOrdenada() throws Exception {
+        try {
+            Task old = new Task(10L, "Antigua", "desc", TaskStatus.IN_PROGRESS, Priority.MED, 1L, 1L, LocalDate.now().minusDays(5));
+            Task recent = new Task(11L, "Reciente", "desc", TaskStatus.IN_PROGRESS, Priority.MED, 1L, 1L, LocalDate.now().minusDays(2));
+            when(taskService.vencidas()).thenReturn(List.of(old, recent));
+
+            mockMvc.perform(get("/tasks/overdue"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    .andExpect(jsonPath("$[0].title").value("Antigua"));
+        } catch (TaskValidationException e) {
+            throw new IllegalStateException("dato de prueba inválido", e);
+        }
+    }
+
+    @Test
+    void getUnassigned_retorna200YIdsYAssigneeNull() throws Exception {
+        try {
+            Task t1 = new Task(4L, "Escribir tests MockMvc", "desc", TaskStatus.TODO, Priority.MED, 1L, null, LocalDate.now().plusDays(7));
+            Task t2 = new Task(6L, "Publicar en la tienda", "desc", TaskStatus.TODO, Priority.MED, 1L, null, LocalDate.now().plusDays(10));
+            when(taskService.sinResponsable()).thenReturn(List.of(t1, t2));
+
+            mockMvc.perform(get("/tasks/unassigned"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    .andExpect(jsonPath("$[0].id").value(4))
+                    .andExpect(jsonPath("$[0].assigneeId").value(nullValue()));
+        } catch (TaskValidationException e) {
+            throw new IllegalStateException("dato de prueba inválido", e);
+        }
     }
 
     @Test
