@@ -159,93 +159,70 @@ class TaskServiceTest {
         }
     }
 
+    // ==================== S6 Día 2: listados de vencidas y sin responsable ====================
+
+    private static final LocalDate HOY = LocalDate.now();
+
     @Nested
     @DisplayName("vencidas")
     class Vencidas {
 
         @Test
-        void vencidas_devuelveSoloVencidasYOrdenadas() {
-            try {
-                // El repositorio devuelve las tareas en un orden arbitrario: una vencida hace 1 día,
-                // una con fecha en 3 días (futura), una DONE vencida hace 10 días, una sin dueDate,
-                // y una vencida hace 5 días.
-                Task vencidaHace1Dia = new Task(10L, "Vencida1", "desc", TaskStatus.IN_PROGRESS,
-                        Priority.MED, PROYECTO, 1L, LocalDate.now().minusDays(1));
-                Task futuraEn3Dias = new Task(11L, "Futura3", "desc", TaskStatus.IN_PROGRESS,
-                        Priority.MED, PROYECTO, 1L, LocalDate.now().plusDays(3));
-                Task doneVencidaHace10 = new Task(12L, "DoneOld10", "desc", TaskStatus.DONE,
-                        Priority.MED, PROYECTO, 1L, LocalDate.now().minusDays(10));
-                Task sinFecha = new Task(13L, "SinFecha", "desc", TaskStatus.IN_PROGRESS,
-                        Priority.MED, PROYECTO, 1L, null);
-                Task vencidaHace5Dias = new Task(14L, "Vencida5", "desc", TaskStatus.IN_PROGRESS,
-                        Priority.MED, PROYECTO, 1L, LocalDate.now().minusDays(5));
+        void vencidas_devuelveSoloLasVencidasNoDone_laMasVencidaPrimero() {
+            Task hace1 = tareaCon(1L, TaskStatus.IN_PROGRESS, 5L, HOY.minusDays(1));
+            Task en3 = tareaCon(2L, TaskStatus.TODO, 5L, HOY.plusDays(3));
+            Task doneHace10 = tareaCon(3L, TaskStatus.DONE, 5L, HOY.minusDays(10));
+            Task sinFecha = tareaCon(4L, TaskStatus.TODO, 5L, null);
+            Task hace5 = tareaCon(5L, TaskStatus.TODO, 5L, HOY.minusDays(5));
+            when(repository.findAll()).thenReturn(List.of(hace1, en3, doneHace10, sinFecha, hace5));
 
-                when(repository.findAll()).thenReturn(List.of(
-                        vencidaHace1Dia,
-                        futuraEn3Dias,
-                        doneVencidaHace10,
-                        sinFecha,
-                        vencidaHace5Dias
-                ));
+            List<Long> ids = service.vencidas().stream().map(Task::getId).toList();
 
-                List<Task> res = service.vencidas();
+            // El repositorio las entrega como 1, 5: sin el .sorted(TaskOrders.POR_FECHA) este assert falla.
+            assertEquals(List.of(5L, 1L), ids);
+        }
 
-                // Solo las dos vencidas (hace 1 día y hace 5 días), ordenadas por fecha asc (la más antigua primero).
-                assertEquals(2, res.size());
-                assertEquals(vencidaHace5Dias.getId(), res.get(0).getId());
-                assertEquals(vencidaHace1Dia.getId(), res.get(1).getId());
-            } catch (TaskValidationException e) {
-                throw new IllegalStateException("dato de prueba inválido", e);
-            }
+        @Test
+        void vencidas_sinNingunaVencida_devuelveListaVacia() {
+            when(repository.findAll()).thenReturn(List.of(tareaCon(1L, TaskStatus.TODO, 5L, HOY.plusDays(1))));
+
+            assertEquals(List.of(), service.vencidas());
         }
     }
 
     @Nested
-    @DisplayName("SinResponsable")
+    @DisplayName("sinResponsable")
     class SinResponsable {
 
         @Test
-        void sinResponsable_devuelveSoloSinAsignarYOrdenadas() {
-            try {
-                Task sinResp10 = new Task(20L, "Sin10", "desc", TaskStatus.IN_PROGRESS,
-                        Priority.MED, PROYECTO, null, LocalDate.now().plusDays(10));
-                Task conResp = new Task(21L, "ConResp", "desc", TaskStatus.TODO,
-                        Priority.MED, PROYECTO, 2L, LocalDate.now().plusDays(5));
-                Task sinFecha = new Task(22L, "SinFecha", "desc", TaskStatus.TODO,
-                        Priority.MED, PROYECTO, null, null);
-                Task sinResp2 = new Task(23L, "Sin2", "desc", TaskStatus.TODO,
-                        Priority.MED, PROYECTO, null, LocalDate.now().plusDays(2));
+        void sinResponsable_devuelveLasSinResponsableEnCualquierEstado_porFechaYSinFechaAlFinal() {
+            // Estados mezclados a propósito (TODO, IN_PROGRESS, DONE): la regla es solo el responsable.
+            Task en10 = tareaCon(1L, TaskStatus.TODO, null, HOY.plusDays(10));
+            Task conResponsable = tareaCon(2L, TaskStatus.TODO, 5L, HOY.plusDays(1));
+            Task sinFecha = tareaCon(3L, TaskStatus.IN_PROGRESS, null, null);
+            Task en2 = tareaCon(4L, TaskStatus.DONE, null, HOY.plusDays(2));
+            when(repository.findAll()).thenReturn(List.of(en10, conResponsable, sinFecha, en2));
 
-                when(repository.findAll()).thenReturn(List.of(
-                        sinResp10,
-                        conResp,
-                        sinFecha,
-                        sinResp2
-                ));
+            List<Long> ids = service.sinResponsable().stream().map(Task::getId).toList();
 
-                List<Task> res = service.sinResponsable();
-
-                assertEquals(3, res.size());
-                List<Long> ids = res.stream().map(Task::getId).toList();
-                assertEquals(List.of(23L, 20L, 22L), ids);
-            } catch (TaskValidationException e) {
-                throw new IllegalStateException("dato de prueba inválido", e);
-            }
+            // El repositorio las entrega como 1, 3, 4: sin el .sorted(TaskOrders.POR_FECHA) este assert falla.
+            assertEquals(List.of(4L, 1L, 3L), ids);
         }
 
         @Test
-        void sinResponsable_conSoloAsignadas_devuelveListaVacia() {
-            try {
-                Task c1 = new Task(30L, "C1ok", "desc", TaskStatus.TODO, Priority.MED, PROYECTO, 5L, null);
-                Task c2 = new Task(31L, "C2ok", "desc", TaskStatus.TODO, Priority.MED, PROYECTO, 6L, LocalDate.now().plusDays(1));
-                when(repository.findAll()).thenReturn(List.of(c1, c2));
+        void sinResponsable_todasConResponsable_devuelveListaVacia() {
+            when(repository.findAll()).thenReturn(List.of(tareaCon(1L, TaskStatus.TODO, 5L, null)));
 
-                List<Task> res = service.sinResponsable();
+            assertEquals(List.of(), service.sinResponsable());
+        }
+    }
 
-                assertEquals(0, res.size());
-            } catch (TaskValidationException e) {
-                throw new IllegalStateException("dato de prueba inválido", e);
-            }
+    /** Fabrica una Task REAL con estado, responsable y fecha a elección (null = sin responsable / sin fecha). */
+    private Task tareaCon(Long id, TaskStatus status, Long assigneeId, LocalDate dueDate) {
+        try {
+            return new Task(id, "Tarea " + id, "desc", status, Priority.MED, PROYECTO, assigneeId, dueDate);
+        } catch (TaskValidationException e) {
+            throw new IllegalStateException("dato de prueba inválido", e);
         }
     }
 
