@@ -30,6 +30,26 @@ import java.util.Optional;
 @Service
 public class ProjectService {
 
+    /**
+     * Resumen de un proyecto: cuenta tareas por estado y vencidas. Recibe el proyecto ya cargado
+     * (el controller decide 404 con buscarPorId). Reutiliza Task.estaVencida() para la regla de
+     * vencido.
+     */
+    public com.taskflow.dto.ProjectSummaryResponse resumen(Project proyecto) {
+        java.util.List<com.taskflow.model.Task> tareas = taskRepository.findByProjectId(proyecto.getId());
+        long total = tareas.size();
+        java.util.Map<String, Long> byStatus = new java.util.HashMap<>();
+        // Inicializar las tres claves a 0 para garantizar presencia aunque no haya tareas
+        for (com.taskflow.model.TaskStatus s : com.taskflow.model.TaskStatus.values()) {
+            byStatus.put(s.name(), 0L);
+        }
+        for (com.taskflow.model.Task t : tareas) {
+            byStatus.put(t.getStatus().name(), byStatus.get(t.getStatus().name()) + 1);
+        }
+        long overdue = tareas.stream().filter(com.taskflow.model.Task::estaVencida).count();
+        return com.taskflow.mapper.ProjectMapper.aSummary(proyecto.getId(), proyecto.getName(), total, byStatus, overdue);
+    }
+
     private final ProjectRepository projectRepository;
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;   // D5: para resolver el owner desde el username del JWT
