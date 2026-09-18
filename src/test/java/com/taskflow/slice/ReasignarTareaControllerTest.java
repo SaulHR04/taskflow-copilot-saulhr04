@@ -58,7 +58,7 @@ class ReasignarTareaControllerTest {
 
     @Test
     void patchAssignee_tareaDone_devuelve422() throws Exception {
-        Task tarea = new Task(2L, "T02", "d", TaskStatus.TODO, Priority.MED, 1L, null, null);
+        Task tarea = new Task(2L, "T02", "d", TaskStatus.DONE, Priority.MED, 1L, 1L, null);
         when(taskService.buscarPorId(2L)).thenReturn(Optional.of(tarea));
         when(taskService.reasignar(any(Task.class), eq(3L)))
                 .thenThrow(new com.taskflow.exception.TaskStateException("No se puede reasignar una tarea terminada."));
@@ -67,7 +67,8 @@ class ReasignarTareaControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"assigneeId\":3}"))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.status").value(422));
+                .andExpect(jsonPath("$.status").value(422))
+                .andExpect(jsonPath("$.message").value("No se puede reasignar una tarea terminada."));
     }
 
     @Test
